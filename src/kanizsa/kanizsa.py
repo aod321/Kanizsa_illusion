@@ -10,6 +10,7 @@ class Kanizsa:
     def __init__(self,
                  width=224, height=224,
                  center=(112, 112), radius=10, distance=1, polygon='triangle',
+                 pad_face_color="white",
                  circle_color="black",
                  circle_edge_color=None,
                  all_circles=False,
@@ -22,6 +23,7 @@ class Kanizsa:
         self.distance = distance
         self.polygon = polygon
         self.polygon_rgba = polygon_rgba
+        self.face_color = pad_face_color
         self.circle_color = circle_color
         self.circle_edge_color = circle_edge_color
         self.cen_xy = None
@@ -54,18 +56,20 @@ class Kanizsa:
             raise RuntimeError("Error Polygon type, please input 'triangle' or 'rectangle' ")
         return mpatches.Polygon(xy, color=rgba)
 
-    def draw(self, face_color="white", all_circles=-1, plot=True):
+    def draw(self, face_color=None, all_circles=-1, plot=True, show_axis=True):
+        if face_color is not None:
+            self.face_color = face_color
         if all_circles != -1:
             self.all_circles = all_circles
         fig, ax = plt.subplots()
-        ax.set_facecolor(face_color)
+        ax.set_facecolor(self.face_color)
         ax.axis([0, self.width, 0, self.height])
         ax.set_aspect("equal")
         self.cen_xy, self.circle_patches = self._get_circle_set(center=self.center, radius=self.radius,
                                                                 distance=self.distance, face_color=self.circle_color,
                                                                 edge_color=self.circle_edge_color
                                                                 )
-        self.polygon_patches = self._get_polygon(self.cen_xy, polygon=self.polygon)
+        self.polygon_patches = self._get_polygon(self.cen_xy, polygon=self.polygon, rgba=self.polygon_rgba)
         show_range = range(len(self.circle_patches))
         if not self.all_circles:
             if self.polygon == 'triangle':
@@ -79,6 +83,9 @@ class Kanizsa:
             ax.add_patch(self.circle_patches[i])
         ax.add_patch(self.polygon_patches)
         if plot:
+            if not show_axis:
+                plt.xticks([])
+                plt.yticks([])
             plt.show()
         return fig, ax
 
@@ -90,6 +97,7 @@ class Kanizsa:
                height: Optional[Union[int, float]] = None,
                center: Optional[Union[List[int], Tuple[int], List[float], Tuple[float]]] = None,
                polygon: Optional[str] = None,
+               face_color: Optional[str] = None,
                circle_color: Optional[str] = None,
                circle_edge_color: Optional[str] = None,
                polygon_rgba: Optional[Union[List[int], Tuple[int], List[float], Tuple[float]]] = None,
@@ -97,6 +105,8 @@ class Kanizsa:
                ):
         if all_circles != -1:
             self.all_circles = all_circles
+        if face_color is not None:
+            self.face_color = face_color
         if distance is not None:
             self.distance = distance
         if radius is not None:
@@ -119,11 +129,11 @@ class Kanizsa:
             cen_xy, _ = self._get_circle_set(center=self.center, radius=self.radius, distance=self.distance)
             for i in range(len(self.circle_patches)):
                 self.circle_patches[i].center = cen_xy.reshape(-1, 2)[i]
-            polygon_patches = self._get_polygon(circles_cen_xy=cen_xy, polygon=self.polygon, rgba=(1, 1, 1, 1))
+            polygon_patches = self._get_polygon(circles_cen_xy=cen_xy, polygon=self.polygon, rgba=self.polygon_rgba)
             self.polygon_patches.xy = polygon_patches.xy
 
     def animate(self, frames=np.linspace(1, 100, 100), interval=50, repeat_delay=1000, plot=False):
-        fig, ax = self.draw(plot=plot)
+        fig, ax = self.draw(face_color=self.face_color, all_circles=self.all_circles, plot=plot)
         ani = animation.FuncAnimation(fig, self.update, frames=frames,
                                       interval=interval, repeat_delay=repeat_delay)
         return ani
