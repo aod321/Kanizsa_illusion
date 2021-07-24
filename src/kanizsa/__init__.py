@@ -1,0 +1,1 @@
+from .kanizsa import Kanizsa
